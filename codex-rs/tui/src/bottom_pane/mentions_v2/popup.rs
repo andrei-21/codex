@@ -30,7 +30,7 @@ impl Popup {
             file_search,
             candidates,
             rows: Vec::new(),
-            search_mode: SearchMode::Results,
+            search_mode: SearchMode::FilesystemOnly,
             state: ScrollState::new(),
         };
         popup.refresh_rows();
