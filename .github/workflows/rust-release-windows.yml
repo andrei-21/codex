@@ -192,8 +192,7 @@ jobs:
       - name: Download pinned Windows build inputs
         shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.VOICE_BUILD_INPUTS_TOKEN || github.token }}
-          INPUTS_REPOSITORY: ${{ vars.VOICE_BUILD_INPUTS_REPOSITORY || github.repository }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           $manifest = Get-Content -Raw .github/scripts/voice-cygwin-snapshot.json | ConvertFrom-Json
           $pin = $manifest.archive
