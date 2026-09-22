@@ -259,11 +259,11 @@ installed tool tree stays in the CI temporary directory and is never added to
 a Codex package. The upstream mirror's signed metadata changes over time, so
 the archived snapshot must be supplied separately. Private CI validates this
 public bootstrap against its existing pinned archive. Public release CI obtains
-the same hash-pinned build inputs from the public `openai/codex` release named
-by `voice-cygwin-snapshot.json`. That release also makes the corresponding
-upstream source archives available under `cygwin-build-sources.tar`, with its
-own size and SHA-256 pin. These Cygwin tools run only on the build runner;
-neither archive is included in the user's Codex package.
+the same hash-pinned build inputs from the configured release repository named
+by `VOICE_BUILD_INPUTS_REPOSITORY` (defaulting to `openai/codex`). That release
+also makes the corresponding upstream source archives available under
+`cygwin-build-sources.tar`, with its own size and SHA-256 pin. These Cygwin tools
+run only on the build runner; neither archive is included in the user's Codex package.
 
 The default
 `windows_installed_tools` label setting is empty and fails if a Windows action

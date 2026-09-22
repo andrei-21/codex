@@ -192,15 +192,16 @@ jobs:
       - name: Download pinned Windows build inputs
         shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.VOICE_BUILD_INPUTS_TOKEN || github.token }}
+          INPUTS_REPOSITORY: ${{ vars.VOICE_BUILD_INPUTS_REPOSITORY || github.repository }}
         run: |
           $manifest = Get-Content -Raw .github/scripts/voice-cygwin-snapshot.json | ConvertFrom-Json
           $pin = $manifest.archive
           $source = $manifest.sourceArchive
           $directory = Join-Path $env:RUNNER_TEMP "voice-cygwin-snapshot"
           New-Item -ItemType Directory -Path $directory | Out-Null
-          gh release download $pin.tag --repo "${{ github.repository }}" --pattern $pin.name --pattern $source.name --dir $directory
-          if ($LASTEXITCODE -ne 0) { throw "Cannot obtain the public Cygwin inputs and source" }
+          gh release download $pin.tag --repo $env:INPUTS_REPOSITORY --pattern $pin.name --pattern $source.name --dir $directory
+          if ($LASTEXITCODE -ne 0) { throw "Cannot obtain the pinned Cygwin inputs and source from the configured release repository" }
           $sourceFile = Join-Path $directory $source.name
           if ((Get-Item $sourceFile).Length -ne $source.bytes -or
               (Get-FileHash $sourceFile -Algorithm SHA256).Hash.ToLowerInvariant() -ne $source.sha256) {
@@ -411,7 +412,7 @@ jobs:
           unsigned="${RUNNER_TEMP}/unsigned-voice/extracted"
           signed="${GITHUB_WORKSPACE}/signed-voice/${target}"
           mkdir -p "$unsigned" "$signed"
-          tar -xzf "$(cygpath -u "${RUNNER_TEMP}/unsigned-voice/voice-unsigned-${target}.tar.gz")" -C "$(cygpath -u "$unsigned")"
+          tar -xzf "${RUNNER_TEMP}/unsigned-voice/voice-unsigned-${target}.tar.gz" -C "$unsigned"
           python "${GITHUB_WORKSPACE}/third_party/voice/release_runtime.py" stage \
             --source "$unsigned/runtime" --target "$target" --output "$signed/runtime"
           cp "$unsigned/codex-voice-host.exe" "$signed/codex-voice-host.exe"
@@ -535,18 +536,23 @@ jobs:
 
           # The wheel's Windows support floor predates the native voice
           # runtime's verified device/VC++ prerequisites. Keep it voice-free.
-          wheel_package="${RUNNER_TEMP}/codex-package-${{ matrix.target }}"
-          python - "$wheel_package" <<'PY'
+          wheel_archives="${RUNNER_TEMP}/voice-free-wheel/${{ matrix.target }}"
+          bash "${GITHUB_WORKSPACE}/.github/scripts/build-codex-package-archive.sh" \
+            --target "${{ matrix.target }}" --bundle primary \
+            --entrypoint-dir "$CARGO_TARGET_DIR/${{ matrix.target }}/release" \
+            --archive-dir "$wheel_archives"
+          python - "$wheel_archives/codex-package-${{ matrix.target }}.tar.gz" <<'PY'
           import sys
-          from pathlib import Path
-          assert not (Path(sys.argv[1]) / "codex-resources" / "voice").exists()
+          import tarfile
+          with tarfile.open(sys.argv[1]) as archive:
+              assert not any("codex-resources/voice/" in member.name for member in archive)
           PY
           stage_dir="${RUNNER_TEMP}/openai-codex-cli-bin-${{ matrix.target }}"
           wheel_dir="${GITHUB_WORKSPACE}/python-runtime-dist/${{ matrix.target }}"
           python "${GITHUB_WORKSPACE}/sdk/python/scripts/update_sdk_artifacts.py" \
             stage-runtime \
             "$stage_dir" \
-            "$wheel_package" \
+            "$wheel_archives/codex-package-${{ matrix.target }}.tar.gz" \
             --codex-version "${GITHUB_REF_NAME}" \
             --platform-tag "$platform_tag"
           "${RUNNER_TEMP}/python-runtime-build-venv/Scripts/python.exe" -m build --wheel --outdir "$wheel_dir" "$stage_dir"
