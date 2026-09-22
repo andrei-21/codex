@@ -149,7 +149,6 @@ toolchain(
     visibility = ["//visibility:public"],
 )
 
-# The native Windows build already uses this pinned CMake, including on ARM64.
 toolchain(
     name = "windows_cmake_toolchain",
     exec_compatible_with = ["@platforms//os:windows"],
