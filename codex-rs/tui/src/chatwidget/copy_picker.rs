@@ -73,6 +73,16 @@ impl ChatWidget {
             return;
         }
 
+        if choices.len() == 1 {
+            let (label, text, format) = choices.pop().expect("one copy choice");
+            self.app_event_tx.send(AppEvent::CopySelection {
+                text,
+                label,
+                format,
+            });
+            return;
+        }
+
         let items = choices
             .into_iter()
             .map(|(label, text, format)| {
