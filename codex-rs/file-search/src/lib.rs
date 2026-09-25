@@ -14,6 +14,7 @@ use nucleo::Utf32String;
 use nucleo::pattern::CaseMatching;
 use nucleo::pattern::Normalization;
 use serde::Serialize;
+use std::ffi::OsStr;
 use std::num::NonZero;
 use std::path::Path;
 use std::path::PathBuf;
@@ -432,6 +433,8 @@ fn walker_worker(
         .threads(inner.threads)
         // Allow hidden entries.
         .hidden(false)
+        // Keep hidden project files searchable without walking Git metadata.
+        .filter_entry(|entry| entry.depth() == 0 || entry.file_name() != OsStr::new(".git"))
         // Follow symlinks to search their contents.
         .follow_links(true)
         // Keep ignore behavior aligned with git repositories: only apply
