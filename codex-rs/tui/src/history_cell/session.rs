@@ -419,13 +419,6 @@ impl HistoryCell for SessionHeaderHistoryCell {
                 "YOLO mode".magenta().bold(),
             ]));
         }
-        if let Some(greeting) = self.greeting.get() {
-            // The tip/help that follows has its own normal composite separator.
-            lines.extend([
-                Line::default(),
-                Line::from(vec!["  ".into(), greeting.phrase.fg(accent_color())]),
-            ]);
-        }
         plain_hyperlink_lines(
             lines
                 .into_iter()
